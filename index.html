@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Food Analyser - Analyze food product ingredients and get detailed health information">
+    <title>Food Analyser - Ingredient Analysis Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .ingredient-card {
+            transition: all 0.3s ease;
+        }
+        
+        .ingredient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .collapsible-content.expanded {
+            max-height: 2000px;
+        }
+        
+        .rotate-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .rotate-icon.rotated {
+            transform: rotate(90deg);
+        }
+        
+        .health-score-bar {
+            transition: width 0.5s ease;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .tree-line {
+            border-left: 2px solid #e5e7eb;
+            margin-left: 1rem;
+            padding-left: 1.5rem;
+        }
+        
+        .category-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .category-badge:hover {
+            transform: scale(1.02);
+        }
+        
+        .safety-excellent { background-color: #10b981; color: white; }
+        .safety-good { background-color: #84cc16; color: white; }
+        .safety-moderate { background-color: #f59e0b; color: white; }
+        .safety-poor { background-color: #ef4444; color: white; }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <nav class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <span class="text-3xl">🍎</span>
+                    <h1 class="text-2xl font-bold">Food Analyser</h1>
+                </div>
+                <div class="hidden md:flex space-x-6">
+                    <a href="#home" class="hover:text-purple-200 transition">Home</a>
+                    <a href="#analyze" class="hover:text-purple-200 transition">Analyze</a>
+                    <a href="#about" class="hover:text-purple-200 transition">About</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="gradient-bg text-white py-20">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-5xl font-bold mb-6">Know What You Eat</h2>
+            <p class="text-xl mb-8 max-w-2xl mx-auto">
+                Analyze food product ingredients instantly and get detailed health information with pros, cons, and safety ratings.
+            </p>
+            <a href="#analyze" class="bg-white text-purple-600 px-8 py-3 rounded-full font-semibold hover:bg-purple-100 transition inline-block">
+                Start Analyzing
+            </a>
+        </div>
+    </section>
+
+    <!-- Analysis Input Section -->
+    <section id="analyze" class="py-16 bg-white">
+        <div class="container mx-auto px-4 max-w-4xl">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-gray-800 mb-4">Analyze Your Food Product</h3>
+                <p class="text-gray-600">Paste the ingredients list from your food product label below</p>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-8 border border-gray-200">
+                <label for="ingredientsInput" class="block text-gray-700 font-semibold mb-3">
+                    Ingredients List:
+                </label>
+                <textarea 
+                    id="ingredientsInput" 
+                    rows="6" 
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    placeholder="Example: Water, Sugar, Wheat Flour, Palm Oil, Sodium Benzoate, Citric Acid, Red 40, Natural Flavors, Vitamin C"
+                    aria-label="Enter ingredients to analyze"
+                ></textarea>
+                
+                <div class="mt-6 flex flex-col sm:flex-row gap-4">
+                    <button 
+                        id="analyzeBtn" 
+                        class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition"
+                        aria-label="Analyze ingredients"
+                    >
+                        🔍 Analyze Ingredients
+                    </button>
+                    <button 
+                        id="clearBtn" 
+                        class="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-300 transition"
+                        aria-label="Clear input"
+                    >
+                        Clear
+                    </button>
+                    <button 
+                        id="sampleBtn" 
+                        class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition"
+                        aria-label="Load sample ingredients"
+                    >
+                        Try Sample
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="hidden py-12 text-center">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-600 font-semibold">Analyzing ingredients...</p>
+    </div>
+
+    <!-- Results Section -->
+    <section id="resultsSection" class="py-16 bg-gray-50 hidden">
+        <div class="container mx-auto px-4 max-w-6xl">
+            <!-- Overall Health Score -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-8 text-center fade-in">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">Overall Product Health Score</h3>
+                <div class="flex justify-center items-center mb-4">
+                    <div class="relative">
+                        <svg class="progress-ring" width="200" height="200">
+                            <circle
+                                class="text-gray-200"
+                                stroke="currentColor"
+                                stroke-width="15"
+                                fill="transparent"
+                                r="85"
+                                cx="100"
+                                cy="100"
+                            />
+                            <circle
+                                id="progressCircle"
+                                class="progress-ring-circle"
+                                stroke="currentColor"
+                                stroke-width="15"
+                                fill="transparent"
+                                r="85"
+                                cx="100"
+                                cy="100"
+                                style="stroke-dasharray: 534.07; stroke-dashoffset: 534.07;"
+                            />
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div id="overallScore" class="text-5xl font-bold text-purple-600">0</div>
+                                <div class="text-gray-600 font-semibold">/ 10</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p id="scoreDescription" class="text-gray-600 text-lg"></p>
+                
+                <!-- Search/Filter -->
+                <div class="mt-6">
+                    <input 
+                        id="searchInput" 
+                        type="text" 
+                        placeholder="🔍 Search ingredients..." 
+                        class="w-full max-w-md mx-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        aria-label="Search ingredients"
+                    />
+                </div>
+            </div>
+
+            <!-- Analysis Results Tree -->
+            <div id="analysisResults" class="space-y-6">
+                <!-- Results will be dynamically inserted here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-16 bg-white">
+        <div class="container mx-auto px-4 max-w-4xl">
+            <h3 class="text-3xl font-bold text-gray-800 mb-8 text-center">About Food Analyser</h3>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-12">
+                <div class="bg-purple-50 rounded-xl p-6">
+                    <div class="text-4xl mb-4">🎯</div>
+                    <h4 class="text-xl font-semibold mb-3">Our Mission</h4>
+                    <p class="text-gray-600">
+                        To empower consumers with transparent, easy-to-understand information about food ingredients, 
+                        helping them make healthier choices for themselves and their families.
+                    </p>
+                </div>
+                
+                <div class="bg-green-50 rounded-xl p-6">
+                    <div class="text-4xl mb-4">🔬</div>
+                    <h4 class="text-xl font-semibold mb-3">How It Works</h4>
+                    <p class="text-gray-600">
+                        Our analysis engine categorizes ingredients, evaluates their health impact based on scientific research, 
+                        and presents the information in a clear, hierarchical format.
+                    </p>
+                </div>
+                
+                <div class="bg-blue-50 rounded-xl p-6">
+                    <div class="text-4xl mb-4">📊</div>
+                    <h4 class="text-xl font-semibold mb-3">Safety Ratings</h4>
+                    <p class="text-gray-600">
+                        Each ingredient is rated on a scale of 1-10 based on safety, health benefits, and potential concerns. 
+                        The overall score reflects the product's health profile.
+                    </p>
+                </div>
+                
+                <div class="bg-yellow-50 rounded-xl p-6">
+                    <div class="text-4xl mb-4">💡</div>
+                    <h4 class="text-xl font-semibold mb-3">Color Coding</h4>
+                    <p class="text-gray-600">
+                        <span class="text-green-600 font-semibold">Green</span> = Safe/Beneficial, 
+                        <span class="text-yellow-600 font-semibold">Yellow</span> = Moderate Concern, 
+                        <span class="text-red-600 font-semibold">Red</span> = Potential Health Concerns
+                    </p>
+                </div>
+            </div>
+            
+            <div class="bg-gray-100 rounded-xl p-8 text-center">
+                <p class="text-gray-700 mb-4">
+                    <strong>Disclaimer:</strong> This tool provides general information about food ingredients. 
+                    It should not replace professional medical advice or be used as the sole basis for dietary decisions. 
+                    Always consult with healthcare professionals regarding specific health concerns.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4 text-center">
+            <div class="mb-4">
+                <span class="text-3xl">🍎</span>
+                <h3 class="text-xl font-bold inline-block ml-2">Food Analyser</h3>
+            </div>
+            <p class="text-gray-400 mb-4">
+                Making food ingredient information accessible to everyone
+            </p>
+            <p class="text-gray-500 text-sm">
+                © 2024 Food Analyser. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Comprehensive Ingredient Database
+        const ingredientDatabase = {
+            // Natural Ingredients
+            'water': {
+                name: 'Water',
+                category: 'Natural Ingredients',
+                description: 'Essential liquid component used as a base in most food products.',
+                purpose: 'Solvent, hydration, texture',
+                pros: ['Essential for life', 'Calorie-free', 'Supports product consistency'],
+                cons: ['None - completely safe'],
+                rating: 10,
+                icon: '💧'
+            },
+            'sugar': {
+                name: 'Sugar (Sucrose)',
+                category: 'Natural Ingredients',
+                description: 'Natural sweetener derived from sugar cane or sugar beets.',
+                purpose: 'Sweetener, preservative, texture enhancer',
+                pros: ['Natural source', 'Provides quick energy', 'Enhances flavor'],
+                cons: ['High caloric content', 'Can cause tooth decay', 'May contribute to weight gain', 'Can spike blood sugar levels'],
+                rating: 5,
+                icon: '🍬'
+            },
+            'wheat flour': {
+                name: 'Wheat Flour',
+                category: 'Natural Ingredients',
+                description: 'Powder made from grinding wheat grains.',
+                purpose: 'Main structure ingredient, thickening agent',
+                pros: ['Good source of carbohydrates', 'Contains B vitamins', 'Provides fiber (whole wheat)', 'Natural ingredient'],
+                cons: ['Contains gluten (not suitable for celiac disease)', 'Refined flour has lower nutritional value', 'May cause allergic reactions in some people'],
+                rating: 7,
+                icon: '🌾'
+            },
+            'salt': {
+                name: 'Salt (Sodium Chloride)',
+                category: 'Natural Ingredients',
+                description: 'Mineral composed of sodium and chloride.',
+                purpose: 'Flavor enhancer, preservative',
+                pros: ['Essential mineral', 'Enhances flavor', 'Acts as preservative', 'Required for body function'],
+                cons: ['Excessive intake linked to high blood pressure', 'Can cause water retention', 'Linked to cardiovascular issues'],
+                rating: 6,
+                icon: '🧂'
+            },
+            'olive oil': {
+                name: 'Olive Oil',
+                category: 'Natural Ingredients',
+                description: 'Oil extracted from olives.',
+                purpose: 'Fat source, flavor enhancer',
+                pros: ['Heart-healthy monounsaturated fats', 'Rich in antioxidants', 'Anti-inflammatory properties', 'Natural product'],
+                cons: ['High in calories', 'Can oxidize at high temperatures'],
+                rating: 9,
+                icon: '🫒'
+            },
+            'tomato': {
+                name: 'Tomato',
+                category: 'Natural Ingredients',
+                description: 'Fruit commonly used as vegetable in cooking.',
+                purpose: 'Flavor, nutrition, color',
+                pros: ['Rich in lycopene antioxidant', 'Good source of vitamins C and K', 'Low calorie', 'Natural ingredient'],
+                cons: ['May cause acid reflux in sensitive individuals', 'Nightshade family (some avoid)'],
+                rating: 9,
+                icon: '🍅'
+            },
+            'garlic': {
+                name: 'Garlic',
+                category: 'Natural Ingredients',
+                description: 'Pungent bulb used for flavoring.',
+                purpose: 'Flavor enhancer',
+                pros: ['Antimicrobial properties', 'May support heart health', 'Rich in antioxidants', 'Natural ingredient'],
+                cons: ['Can cause bad breath', 'May cause digestive upset in large amounts'],
+                rating: 9,
+                icon: '🧄'
+            },
+            'onion': {
+                name: 'Onion',
+                category: 'Natural Ingredients',
+                description: 'Bulb vegetable used for flavoring.',
+                purpose: 'Flavor enhancer',
+                pros: ['Rich in antioxidants', 'Contains vitamin C', 'Anti-inflammatory properties', 'Natural ingredient'],
+                cons: ['May cause digestive discomfort', 'Can irritate eyes when cutting'],
+                rating: 9,
+                icon: '🧅'
+            },
+            'lemon juice': {
+                name: 'Lemon Juice',
+                category: 'Natural Ingredients',
+                description: 'Acidic juice from lemons.',
+                purpose: 'Flavoring, acidity regulator, preservative',
+                pros: ['High in vitamin C', 'Natural preservative', 'Adds fresh flavor', 'Antioxidant properties'],
+                cons: ['Acidic - may erode tooth enamel', 'Can cause heartburn in sensitive individuals'],
+                rating: 8,
+                icon: '🍋'
+            },
+            'vanilla extract': {
+                name: 'Vanilla Extract',
+                category: 'Natural Ingredients',
+                description: 'Extract from vanilla beans.',
+                purpose: 'Flavoring',
+                pros: ['Natural flavoring', 'Contains antioxidants', 'No artificial ingredients'],
+                cons: ['Contains alcohol', 'Expensive', 'Possible allergic reactions (rare)'],
+                rating: 8,
+                icon: '🌺'
+            },
+            
+            // Preservatives
+            'sodium benzoate': {
+                name: 'Sodium Benzoate',
+                category: 'Additives & Preservatives',
+                description: 'Synthetic preservative commonly used in acidic foods.',
+                purpose: 'Antimicrobial preservative',
+                pros: ['Effective at preventing bacterial growth', 'Extends shelf life', 'Generally recognized as safe in small amounts'],
+                cons: ['May form benzene (carcinogen) when combined with vitamin C', 'Can trigger allergic reactions', 'May worsen ADHD symptoms in children'],
+                rating: 4,
+                icon: '🧪'
+            },
+            'potassium sorbate': {
+                name: 'Potassium Sorbate',
+                category: 'Additives & Preservatives',
+                description: 'Preservative that inhibits mold and yeast growth.',
+                purpose: 'Antimicrobial preservative',
+                pros: ['Effective against molds and yeasts', 'Generally considered safe', 'Doesn\'t alter taste'],
+                cons: ['May cause allergic reactions in sensitive individuals', 'Possible skin irritation', 'Synthetic additive'],
+                rating: 6,
+                icon: '🧪'
+            },
+            'citric acid': {
+                name: 'Citric Acid',
+                category: 'Additives & Preservatives',
+                description: 'Weak organic acid naturally found in citrus fruits.',
+                purpose: 'Preservative, flavor enhancer, acidity regulator',
+                pros: ['Natural origin', 'Enhances flavor', 'Acts as antioxidant', 'Generally safe'],
+                cons: ['May erode tooth enamel in high concentrations', 'Can cause stomach upset in large amounts', 'Often synthetically produced'],
+                rating: 7,
+                icon: '🍋'
+            },
+            'calcium propionate': {
+                name: 'Calcium Propionate',
+                category: 'Additives & Preservatives',
+                description: 'Preservative used primarily in baked goods.',
+                purpose: 'Prevents mold growth',
+                pros: ['Effective mold inhibitor', 'Generally recognized as safe', 'Extends shelf life of bread products'],
+                cons: ['May cause digestive issues in sensitive individuals', 'Possible behavioral effects in children (debated)', 'Synthetic additive'],
+                rating: 6,
+                icon: '🧪'
+            },
+            'tbhq': {
+                name: 'TBHQ (Tertiary Butylhydroquinone)',
+                category: 'Additives & Preservatives',
+                description: 'Synthetic antioxidant preservative.',
+                purpose: 'Prevents oxidation and rancidity',
+                pros: ['Extends shelf life of fats and oils', 'Prevents spoilage'],
+                cons: ['Synthetic chemical', 'May cause nausea and vomiting in high doses', 'Possible carcinogenic effects (animal studies)', 'May affect immune function'],
+                rating: 3,
+                icon: '⚠️'
+            },
+            
+            // Artificial Sweeteners
+            'aspartame': {
+                name: 'Aspartame',
+                category: 'Sweeteners',
+                description: 'Artificial sweetener 200 times sweeter than sugar.',
+                purpose: 'Low-calorie sweetener',
+                pros: ['Zero calories', 'Does not raise blood sugar', 'Much sweeter than sugar (less needed)'],
+                cons: ['Not suitable for people with phenylketonuria (PKU)', 'Controversial health concerns', 'May cause headaches in some people', 'Artificial ingredient'],
+                rating: 4,
+                icon: '🍬'
+            },
+            'sucralose': {
+                name: 'Sucralose',
+                category: 'Sweeteners',
+                description: 'Artificial sweetener made from modified sugar.',
+                purpose: 'Low-calorie sweetener',
+                pros: ['Zero calories', 'Heat stable for cooking', 'Does not affect blood sugar', '600 times sweeter than sugar'],
+                cons: ['May affect gut bacteria', 'Can break down at high temperatures', 'Long-term health effects unclear', 'Highly processed'],
+                rating: 5,
+                icon: '🍬'
+            },
+            'stevia': {
+                name: 'Stevia',
+                category: 'Sweeteners',
+                description: 'Natural sweetener extracted from stevia plant leaves.',
+                purpose: 'Natural low-calorie sweetener',
+                pros: ['Natural origin', 'Zero calories', 'Does not affect blood sugar', 'May help lower blood pressure', '200-400 times sweeter than sugar'],
+                cons: ['Bitter aftertaste for some people', 'May interact with certain medications', 'Processed extracts less natural'],
+                rating: 8,
+                icon: '🌿'
+            },
+            'high fructose corn syrup': {
+                name: 'High Fructose Corn Syrup',
+                category: 'Sweeteners',
+                description: 'Sweetener made from corn starch.',
+                purpose: 'Sweetener, preservative',
+                pros: ['Inexpensive', 'Extends shelf life', 'Easy to blend in liquids'],
+                cons: ['Linked to obesity', 'May increase risk of type 2 diabetes', 'Associated with fatty liver disease', 'Higher fructose content than regular sugar', 'Highly processed'],
+                rating: 3,
+                icon: '🌽'
+            },
+            'honey': {
+                name: 'Honey',
+                category: 'Sweeteners',
+                description: 'Natural sweet substance produced by bees.',
+                purpose: 'Natural sweetener',
+                pros: ['Natural product', 'Contains antioxidants', 'Antibacterial properties', 'Contains trace minerals', 'May soothe coughs'],
+                cons: ['High in calories', 'Can spike blood sugar', 'Not suitable for infants', 'Still a form of sugar'],
+                rating: 7,
+                icon: '🍯'
+            },
+            
+            // Food Colorings
+            'red 40': {
+                name: 'Red 40 (Allura Red)',
+                category: 'Artificial Colors & Flavors',
+                description: 'Synthetic red food coloring.',
+                purpose: 'Adds red color to foods',
+                pros: ['Stable color', 'Cost-effective', 'Widely used and approved'],
+                cons: ['May cause hyperactivity in children', 'Possible allergic reactions', 'Derived from petroleum', 'Banned in some European countries', 'No nutritional value'],
+                rating: 3,
+                icon: '🔴'
+            },
+            'yellow 5': {
+                name: 'Yellow 5 (Tartrazine)',
+                category: 'Artificial Colors & Flavors',
+                description: 'Synthetic yellow food coloring.',
+                purpose: 'Adds yellow color to foods',
+                pros: ['Vibrant color', 'Cost-effective', 'Heat stable'],
+                cons: ['May cause hyperactivity in children', 'Can trigger allergic reactions', 'Derived from petroleum', 'May cause hives and asthma', 'Must be labeled due to allergen concerns'],
+                rating: 3,
+                icon: '🟡'
+            },
+            'yellow 6': {
+                name: 'Yellow 6 (Sunset Yellow)',
+                category: 'Artificial Colors & Flavors',
+                description: 'Synthetic orange-yellow food coloring.',
+                purpose: 'Adds orange-yellow color',
+                pros: ['Vibrant color', 'Stable', 'Widely approved'],
+                cons: ['May cause hyperactivity', 'Possible allergic reactions', 'Contaminated with carcinogens', 'Derived from petroleum'],
+                rating: 3,
+                icon: '🟠'
+            },
+            'blue 1': {
+                name: 'Blue 1 (Brilliant Blue)',
+                category: 'Artificial Colors & Flavors',
+                description: 'Synthetic blue food coloring.',
+                purpose: 'Adds blue color to foods',
+                pros: ['Stable color', 'Widely used'],
+                cons: ['May cause allergic reactions', 'Synthetic chemical', 'Derived from petroleum', 'Some studies suggest kidney tumor risk'],
+                rating: 4,
+                icon: '🔵'
+            },
+            'caramel color': {
+                name: 'Caramel Color',
+                category: 'Artificial Colors & Flavors',
+                description: 'Brown coloring made by heating sugars.',
+                purpose: 'Adds brown color',
+                pros: ['Widely used', 'Generally recognized as safe', 'Natural-looking appearance'],
+                cons: ['May contain 4-MEI (possible carcinogen)', 'Processing method matters for safety', 'No nutritional value'],
+                rating: 5,
+                icon: '🟤'
+            },
+            
+            // Emulsifiers
+            'soy lecithin': {
+                name: 'Soy Lecithin',
+                category: 'Emulsifiers',
+                description: 'Emulsifier derived from soybeans.',
+                purpose: 'Emulsifier, prevents separation',
+                pros: ['Natural origin', 'Generally safe', 'Contains choline', 'Helps blend ingredients'],
+                cons: ['Often from GMO soybeans', 'May cause allergic reactions in soy-sensitive individuals', 'Possible estrogen-like effects (debated)'],
+                rating: 7,
+                icon: '🫘'
+            },
+            'mono and diglycerides': {
+                name: 'Mono and Diglycerides',
+                category: 'Emulsifiers',
+                description: 'Emulsifiers derived from fats and oils.',
+                purpose: 'Emulsifier, texture enhancer',
+                pros: ['Effective emulsifier', 'Generally recognized as safe', 'Improves texture'],
+                cons: ['May contain trans fats', 'Source not always disclosed', 'Highly processed', 'May be derived from animal fats'],
+                rating: 5,
+                icon: '🧪'
+            },
+            'polysorbate 80': {
+                name: 'Polysorbate 80',
+                category: 'Emulsifiers',
+                description: 'Synthetic emulsifier.',
+                purpose: 'Emulsifier, stabilizer',
+                pros: ['Effective emulsifier', 'Approved for use', 'Prevents ingredient separation'],
+                cons: ['Synthetic ingredient', 'May affect gut bacteria', 'Possible inflammatory effects', 'Some studies suggest immune system effects'],
+                rating: 4,
+                icon: '⚠️'
+            },
+            
+            // Flavor Enhancers
+            'msg': {
+                name: 'MSG (Monosodium Glutamate)',
+                category: 'Flavor Enhancers',
+                description: 'Flavor enhancer that adds umami taste.',
+                purpose: 'Enhances savory flavors',
+                pros: ['Effectively enhances flavor', 'Used in small amounts', 'Occurs naturally in some foods', 'Generally recognized as safe'],
+                cons: ['May cause reactions in sensitive individuals (MSG symptom complex)', 'Can cause headaches', 'May increase appetite', 'Controversial ingredient'],
+                rating: 5,
+                icon: '🧂'
+            },
+            'natural flavors': {
+                name: 'Natural Flavors',
+                category: 'Flavor Enhancers',
+                description: 'Flavoring derived from natural sources.',
+                purpose: 'Enhances taste',
+                pros: ['Derived from natural sources', 'Generally safe', 'Enhances flavor without adding calories'],
+                cons: ['Vague term - exact ingredients unknown', 'May contain allergens', 'Highly processed despite natural origin', 'Can be misleading term'],
+                rating: 6,
+                icon: '🌿'
+            },
+            'artificial flavors': {
+                name: 'Artificial Flavors',
+                category: 'Artificial Colors & Flavors',
+                description: 'Synthetically created flavoring compounds.',
+                purpose: 'Enhances or mimics flavors',
+                pros: ['Cost-effective', 'Consistent flavor', 'Stable', 'Often chemically identical to natural versions'],
+                cons: ['Synthetic ingredients', 'Exact composition often unknown', 'May contain multiple chemicals', 'Some people prefer to avoid'],
+                rating: 5,
+                icon: '🧪'
+            },
+            
+            // Vitamins and Minerals
+            'vitamin c': {
+                name: 'Vitamin C (Ascorbic Acid)',
+                category: 'Vitamins & Minerals',
+                description: 'Essential vitamin with antioxidant properties.',
+                purpose: 'Fortification, antioxidant, preservative',
+                pros: ['Essential nutrient', 'Antioxidant properties', 'Supports immune system', 'Necessary for collagen production', 'Generally safe'],
+                cons: ['High doses may cause digestive upset', 'Synthetic form may differ from natural', 'Can form benzene with sodium benzoate'],
+                rating: 9,
+                icon: '💊'
+            },
+            'vitamin d': {
+                name: 'Vitamin D',
+                category: 'Vitamins & Minerals',
+                description: 'Fat-soluble vitamin essential for bone health.',
+                purpose: 'Fortification',
+                pros: ['Essential nutrient', 'Supports bone health', 'Immune system support', 'Many people are deficient', 'Heart health benefits'],
+                cons: ['Excessive intake can be toxic', 'Synthetic form may differ from sunlight-produced vitamin D'],
+                rating: 9,
+                icon: '💊'
+            },
+            'vitamin e': {
+                name: 'Vitamin E (Tocopherol)',
+                category: 'Vitamins & Minerals',
+                description: 'Fat-soluble antioxidant vitamin.',
+                purpose: 'Fortification, antioxidant, preservative',
+                pros: ['Powerful antioxidant', 'Protects cells from damage', 'Supports immune function', 'Preserves food quality'],
+                cons: ['High doses may interfere with blood clotting', 'Synthetic form less active than natural'],
+                rating: 9,
+                icon: '💊'
+            },
+            'iron': {
+                name: 'Iron',
+                category: 'Vitamins & Minerals',
+                description: 'Essential mineral for blood health.',
+                purpose: 'Fortification',
+                pros: ['Essential mineral', 'Prevents anemia', 'Supports oxygen transport', 'Necessary for growth'],
+                cons: ['Can cause constipation', 'Excessive intake can be harmful', 'May interact with certain medications'],
+                rating: 8,
+                icon: '💊'
+            },
+            'calcium': {
+                name: 'Calcium',
+                category: 'Vitamins & Minerals',
+                description: 'Essential mineral for bone health.',
+                purpose: 'Fortification',
+                pros: ['Essential for bones and teeth', 'Supports muscle function', 'Necessary for nerve transmission', 'Most people need more'],
+                cons: ['Excessive intake may cause kidney stones', 'Can interfere with iron absorption', 'May cause digestive issues'],
+                rating: 9,
+                icon: '💊'
+            },
+            
+            // Thickeners and Stabilizers
+            'xanthan gum': {
+                name: 'Xanthan Gum',
+                category: 'Emulsifiers',
+                description: 'Thickener and stabilizer produced by fermentation.',
+                purpose: 'Thickening, stabilizing',
+                pros: ['Effective thickener', 'Gluten-free', 'Low calorie', 'Generally safe', 'Helps improve texture'],
+                cons: ['May cause digestive issues in large amounts', 'Can cause bloating', 'Derived from corn (often GMO)'],
+                rating: 7,
+                icon: '🧪'
+            },
+            'guar gum': {
+                name: 'Guar Gum',
+                category: 'Emulsifiers',
+                description: 'Natural thickener from guar beans.',
+                purpose: 'Thickening, binding',
+                pros: ['Natural origin', 'High in fiber', 'May help lower cholesterol', 'Gluten-free'],
+                cons: ['Can cause digestive issues', 'May cause allergic reactions', 'Can interfere with medication absorption'],
+                rating: 7,
+                icon: '🫘'
+            },
+            'carrageenan': {
+                name: 'Carrageenan',
+                category: 'Emulsifiers',
+                description: 'Thickener extracted from red seaweed.',
+                purpose: 'Thickening, stabilizing, gelling',
+                pros: ['Natural origin from seaweed', 'Vegetarian/vegan', 'Effective thickener'],
+                cons: ['May cause digestive inflammation', 'Controversial safety profile', 'Some studies link to gut issues', 'Degraded form potentially harmful'],
+                rating: 4,
+                icon: '🌊'
+            },
+            
+            // Oils and Fats
+            'palm oil': {
+                name: 'Palm Oil',
+                category: 'Natural Ingredients',
+                description: 'Vegetable oil from palm fruit.',
+                purpose: 'Fat source, texture',
+                pros: ['Stable at high temperatures', 'Semi-solid at room temperature', 'Vitamin E content', 'Cost-effective'],
+                cons: ['High in saturated fat', 'Environmental concerns (deforestation)', 'May increase cholesterol', 'Often highly processed'],
+                rating: 4,
+                icon: '🌴'
+            },
+            'coconut oil': {
+                name: 'Coconut Oil',
+                category: 'Natural Ingredients',
+                description: 'Oil extracted from coconut meat.',
+                purpose: 'Fat source, flavor',
+                pros: ['Natural product', 'Contains MCTs', 'Stable at high heat', 'Antimicrobial properties'],
+                cons: ['Very high in saturated fat', 'May raise LDL cholesterol', 'High in calories', 'Overhyped health claims'],
+                rating: 6,
+                icon: '🥥'
+            },
+            'canola oil': {
+                name: 'Canola Oil',
+                category: 'Natural Ingredients',
+                description: 'Oil from rapeseed plants.',
+                purpose: 'Cooking oil, fat source',
+                pros: ['Low in saturated fat', 'Contains omega-3 fatty acids', 'High smoke point', 'Heart-healthy profile'],
+                cons: ['Highly processed', 'Often GMO', 'May be partially hydrogenated', 'Some controversy over processing methods'],
+                rating: 7,
+                icon: '🌻'
+            }
+        };
+
+        // Category information
+        const categoryInfo = {
+            'Natural Ingredients': {
+                icon: '🥗',
+                description: 'Ingredients derived from natural sources',
+                color: 'bg-green-100 border-green-300'
+            },
+            'Additives & Preservatives': {
+                icon: '🧪',
+                description: 'Chemicals added to extend shelf life and prevent spoilage',
+                color: 'bg-orange-100 border-orange-300'
+            },
+            'Artificial Colors & Flavors': {
+                icon: '🎨',
+                description: 'Synthetic compounds for color and flavor',
+                color: 'bg-purple-100 border-purple-300'
+            },
+            'Sweeteners': {
+                icon: '🍬',
+                description: 'Natural and artificial sweetening agents',
+                color: 'bg-pink-100 border-pink-300'
+            },
+            'Emulsifiers': {
+                icon: '🔬',
+                description: 'Agents that help mix ingredients that normally separate',
+                color: 'bg-blue-100 border-blue-300'
+            },
+            'Flavor Enhancers': {
+                icon: '✨',
+                description: 'Substances that enhance or modify food flavors',
+                color: 'bg-yellow-100 border-yellow-300'
+            },
+            'Vitamins & Minerals': {
+                icon: '💊',
+                description: 'Essential nutrients added for fortification',
+                color: 'bg-teal-100 border-teal-300'
+            }
+        };
+
+        // DOM Elements
+        const ingredientsInput = document.getElementById('ingredientsInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const sampleBtn = document.getElementById('sampleBtn');
+        const loadingState = document.getElementById('loadingState');
+        const resultsSection = document.getElementById('resultsSection');
+        const analysisResults = document.getElementById('analysisResults');
+        const overallScoreEl = document.getElementById('overallScore');
+        const progressCircle = document.getElementById('progressCircle');
+        const scoreDescription = document.getElementById('scoreDescription');
+        const searchInput = document.getElementById('searchInput');
+
+        // Sample data
+        const sampleIngredients = "Water, Sugar, Wheat Flour, Palm Oil, Sodium Benzoate, Citric Acid, Red 40, Natural Flavors, Vitamin C, High Fructose Corn Syrup, Soy Lecithin, MSG, Yellow 5";
+
+        // Event Listeners
+        analyzeBtn.addEventListener('click', analyzeIngredients);
+        clearBtn.addEventListener('click', clearInput);
+        sampleBtn.addEventListener('click', loadSample);
+        searchInput.addEventListener('input', filterIngredients);
+        
+        // Allow Enter key to trigger analysis
+        ingredientsInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                analyzeIngredients();
+            }
+        });
+
+        function clearInput() {
+            ingredientsInput.value = '';
+            resultsSection.classList.add('hidden');
+            ingredientsInput.focus();
+        }
+
+        function loadSample() {
+            ingredientsInput.value = sampleIngredients;
+            ingredientsInput.focus();
+        }
+
+        function analyzeIngredients() {
+            const input = ingredientsInput.value.trim();
+            
+            if (!input) {
+                alert('Please enter some ingredients to analyze!');
+                ingredientsInput.focus();
+                return;
+            }
+
+            // Show loading state
+            loadingState.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+
+            // Simulate processing time
+            setTimeout(() => {
+                const ingredients = parseIngredients(input);
+                displayResults(ingredients);
+                
+                loadingState.classList.add('hidden');
+                resultsSection.classList.remove('hidden');
+                
+                // Smooth scroll to results
+                resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 1500);
+        }
+
+        function parseIngredients(input) {
+            // Split by commas and clean up
+            const ingredientNames = input.split(',').map(name => name.trim().toLowerCase());
+            const parsedIngredients = [];
+            const categorized = {};
+
+            ingredientNames.forEach(name => {
+                // Try to find in database
+                let ingredient = ingredientDatabase[name];
+                
+                if (!ingredient) {
+                    // Try partial matching
+                    const keys = Object.keys(ingredientDatabase);
+                    const match = keys.find(key => 
+                        name.includes(key) || key.includes(name)
+                    );
+                    
+                    if (match) {
+                        ingredient = ingredientDatabase[match];
+                    } else {
+                        // Create a generic entry for unknown ingredients
+                        ingredient = {
+                            name: name.charAt(0).toUpperCase() + name.slice(1),
+                            category: 'Natural Ingredients',
+                            description: 'Information not available in database.',
+                            purpose: 'Unknown',
+                            pros: ['No data available'],
+                            cons: ['Unknown ingredient - research recommended'],
+                            rating: 5,
+                            icon: '❓'
+                        };
+                    }
+                }
+
+                parsedIngredients.push(ingredient);
+                
+                // Categorize
+                if (!categorized[ingredient.category]) {
+                    categorized[ingredient.category] = [];
+                }
+                categorized[ingredient.category].push(ingredient);
+            });
+
+            return { all: parsedIngredients, categorized };
+        }
+
+        function displayResults(ingredients) {
+            // Calculate overall score
+            const avgScore = ingredients.all.reduce((sum, ing) => sum + ing.rating, 0) / ingredients.all.length;
+            const overallScore = avgScore.toFixed(1);
+            
+            // Update overall score display
+            overallScoreEl.textContent = overallScore;
+            updateProgressCircle(overallScore);
+            updateScoreDescription(overallScore);
+
+            // Clear previous results
+            analysisResults.innerHTML = '';
+
+            // Create hierarchical display
+            const categoryOrder = [
+                'Natural Ingredients',
+                'Vitamins & Minerals',
+                'Sweeteners',
+                'Additives & Preservatives',
+                'Artificial Colors & Flavors',
+                'Emulsifiers',
+                'Flavor Enhancers'
+            ];
+
+            categoryOrder.forEach(categoryName => {
+                const categoryIngredients = ingredients.categorized[categoryName];
+                if (categoryIngredients && categoryIngredients.length > 0) {
+                    const categoryCard = createCategoryCard(categoryName, categoryIngredients);
+                    analysisResults.appendChild(categoryCard);
+                }
+            });
+        }
+
+        function createCategoryCard(categoryName, ingredients) {
+            const categoryData = categoryInfo[categoryName];
+            const avgRating = ingredients.reduce((sum, ing) => sum + ing.rating, 0) / ingredients.length;
+            
+            const card = document.createElement('div');
+            card.className = `ingredient-card bg-white rounded-xl shadow-lg overflow-hidden border-2 ${categoryData.color} fade-in`;
+            
+            const safetyClass = getRatingClass(avgRating);
+            
+            card.innerHTML = `
+                <div class="category-header p-6 cursor-pointer hover:bg-gray-50 transition" onclick="toggleCategory(this)">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-3xl">${categoryData.icon}</span>
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-800">${categoryName}</h4>
+                                <p class="text-sm text-gray-600">${categoryData.description}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <span class="px-4 py-2 rounded-full text-sm font-semibold ${safetyClass}">
+                                ${avgRating.toFixed(1)}/10
+                            </span>
+                            <span class="text-2xl rotate-icon">▶</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="collapsible-content tree-line">
+                    <div class="px-6 pb-6 space-y-4">
+                        ${ingredients.map(ing => createIngredientCard(ing)).join('')}
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function createIngredientCard(ingredient) {
+            const safetyClass = getRatingClass(ingredient.rating);
+            
+            return `
+                <div class="ingredient-item bg-gray-50 rounded-lg p-5 border border-gray-200 hover:shadow-md transition">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-2xl">${ingredient.icon}</span>
+                            <h5 class="text-lg font-bold text-gray-800">${ingredient.name}</h5>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold ${safetyClass}">
+                            ${ingredient.rating}/10
+                        </span>
+                    </div>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <p class="text-gray-700"><strong>📝 Description:</strong> ${ingredient.description}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-gray-700"><strong>🎯 Purpose:</strong> ${ingredient.purpose}</p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-green-700 font-semibold mb-1">✅ Pros:</p>
+                            <ul class="list-disc list-inside pl-4 space-y-1">
+                                ${ingredient.pros.map(pro => `<li class="text-gray-700">${pro}</li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div>
+                            <p class="text-red-700 font-semibold mb-1">⚠️ Cons:</p>
+                            <ul class="list-disc list-inside pl-4 space-y-1">
+                                ${ingredient.cons.map(con => `<li class="text-gray-700">${con}</li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div class="pt-2">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-gray-700 font-semibold">📊 Safety Rating:</span>
+                                <span class="font-bold">${ingredient.rating}/10</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="health-score-bar h-2.5 rounded-full ${getRatingBarClass(ingredient.rating)}" 
+                                     style="width: ${ingredient.rating * 10}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleCategory(header) {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('.rotate-icon');
+            
+            content.classList.toggle('expanded');
+            icon.classList.toggle('rotated');
+        }
+
+        function getRatingClass(rating) {
+            if (rating >= 8) return 'safety-excellent';
+            if (rating >= 6) return 'safety-good';
+            if (rating >= 4) return 'safety-moderate';
+            return 'safety-poor';
+        }
+
+        function getRatingBarClass(rating) {
+            if (rating >= 8) return 'bg-green-500';
+            if (rating >= 6) return 'bg-lime-500';
+            if (rating >= 4) return 'bg-yellow-500';
+            return 'bg-red-500';
+        }
+
+        function updateProgressCircle(score) {
+            const circle = progressCircle;
+            const radius = 85;
+            const circumference = 2 * Math.PI * radius;
+            const percentage = score * 10;
+            const offset = circumference - (percentage / 100) * circumference;
+            
+            circle.style.strokeDashoffset = offset;
+            
+            // Update color based on score
+            if (score >= 8) {
+                circle.style.color = '#10b981'; // green
+            } else if (score >= 6) {
+                circle.style.color = '#84cc16'; // lime
+            } else if (score >= 4) {
+                circle.style.color = '#f59e0b'; // yellow
+            } else {
+                circle.style.color = '#ef4444'; // red
+            }
+        }
+
+        function updateScoreDescription(score) {
+            let description = '';
+            
+            if (score >= 8) {
+                description = '🌟 Excellent! This product has mostly beneficial ingredients with minimal concerns.';
+            } else if (score >= 6) {
+                description = '👍 Good! This product has generally safe ingredients with some minor concerns.';
+            } else if (score >= 4) {
+                description = '⚠️ Moderate. This product contains ingredients that may have health concerns for some people.';
+            } else {
+                description = '❌ Poor. This product contains several ingredients with significant health concerns.';
+            }
+            
+            scoreDescription.textContent = description;
+        }
+
+        function filterIngredients() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const ingredientItems = document.querySelectorAll('.ingredient-item');
+            
+            ingredientItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'block';
+                    item.classList.add('fade-in');
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Show/hide category cards based on visible ingredients
+            const categoryCards = document.querySelectorAll('.ingredient-card');
+            categoryCards.forEach(card => {
+                const visibleItems = card.querySelectorAll('.ingredient-item[style="display: block;"], .ingredient-item:not([style*="display"])');
+                if (searchTerm === '' || visibleItems.length > 0) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
